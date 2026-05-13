@@ -10,6 +10,8 @@ const {
   unlikeSong,
   deleteSong,
   externalSearchSongs,
+  youtubeSearchSongs,
+  youtubeResolveSong,
 } = require("../controllers/songController");
 const { adminOnly, protect } = require("../middleware/authMiddleware");
 const { uploadAudio, uploadCover } = require("../middleware/upload");
@@ -19,6 +21,8 @@ const router = express.Router();
 router.get("/", getAllSongs);
 router.get("/search", searchSongs);
 router.get("/external-search", protect, externalSearchSongs);
+router.get("/youtube-search", protect, youtubeSearchSongs);
+router.get("/youtube-resolve", protect, youtubeResolveSong);
 router.get("/trending", getTrendingSongs);
 router.get("/liked", protect, getLikedSongs);
 router.post("/:id/like", protect, likeSong);

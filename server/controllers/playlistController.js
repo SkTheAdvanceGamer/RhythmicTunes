@@ -170,7 +170,14 @@ const addSongToPlaylist = async (req, res) => {
       await result.playlist.save();
     }
 
-    await populatePlaylistSongs(result.playlist);
+    await result.playlist.populate({
+      path: "songs",
+      select: "title artistId coverUrl duration fileUrl genre",
+      populate: {
+        path: "artistId",
+        select: "name",
+      },
+    });
 
     return res.json(result.playlist);
   } catch (error) {
@@ -195,7 +202,14 @@ const removeSongFromPlaylist = async (req, res) => {
     );
 
     await result.playlist.save();
-    await populatePlaylistSongs(result.playlist);
+    await result.playlist.populate({
+      path: "songs",
+      select: "title artistId coverUrl duration fileUrl genre",
+      populate: {
+        path: "artistId",
+        select: "name",
+      },
+    });
 
     return res.json(result.playlist);
   } catch (error) {

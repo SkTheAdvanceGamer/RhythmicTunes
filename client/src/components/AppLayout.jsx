@@ -26,13 +26,14 @@ function AppLayout({ children }) {
     <div className="relative flex min-h-svh">
       {/* Animated mesh gradient background */}
       <div className="mesh-bg" />
+      <div className="beat-bg" />
 
       {/* Layout */}
       <Sidebar />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <Navbar />
         <main
-          className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-8"
+          className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-6"
           style={{
             background: bgGradient,
             transition: 'background 1.2s ease, transform 80ms ease-out, box-shadow 100ms ease-out',

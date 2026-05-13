@@ -1,6 +1,16 @@
 export const defaultCoverUrl =
   'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=400&q=80'
 
+const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '')
+
+export const resolveMediaUrl = (value) => {
+  if (!value || typeof value !== 'string') return ''
+  if (/^https?:\/\//i.test(value)) return value
+  if (value.startsWith('//')) return `https:${value}`
+  if (value.startsWith('/')) return `${apiBaseUrl}${value}`
+  return `${apiBaseUrl}/${value}`
+}
+
 export const getSongId = (song) => song?._id || song?.id || ''
 
 export const getArtistName = (song) => {
@@ -39,7 +49,9 @@ export const normalizeSong = (item) => {
     ...song,
     _id: getSongId(song),
     artistName: getArtistName(song),
-    coverUrl: song.coverUrl || defaultCoverUrl,
+    fileUrl: resolveMediaUrl(song.fileUrl || song.streamUrl || song.previewUrl || song.audioUrl),
+    coverUrl: resolveMediaUrl(song.coverUrl || song.image) || defaultCoverUrl,
+    youtubeVideoId: song.youtubeVideoId || song.videoId || '',
     playCount: item?.playCount,
   }
 }

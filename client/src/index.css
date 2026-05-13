@@ -1,34 +1,39 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ── Violet Glassmorphic Design Tokens ────────────────────────────── */
 :root {
-  --bg-primary: #0d0b1a;
-  --bg-secondary: rgba(255, 255, 255, 0.06);
-  --bg-elevated: rgba(255, 255, 255, 0.09);
-  --bg-highlight: rgba(255, 255, 255, 0.12);
-  --bg-card: rgba(255, 255, 255, 0.08);
-  --surface: rgba(255, 255, 255, 0.05);
-  --accent: #CF9FFF;
-  --accent-hover: #E0B0FF;
-  --accent-muted: rgba(207, 159, 255, 0.15);
-  --accent-glow: rgba(207, 159, 255, 0.35);
-  --accent-bright: #DDB4FF;
-  --text-primary: #f0eef5;
-  --text-secondary: rgba(240, 238, 245, 0.65);
-  --text-muted: rgba(240, 238, 245, 0.35);
-  --border: rgba(255, 255, 255, 0.12);
-  --border-hover: rgba(255, 255, 255, 0.22);
-  --border-glow: rgba(207, 159, 255, 0.3);
-  --glass-bg: rgba(255, 255, 255, 0.07);
-  --glass-bg-strong: rgba(255, 255, 255, 0.12);
+  --bg-primary: #090806;
+  --bg-secondary: #111009;
+  --bg-elevated: #181510;
+  --bg-highlight: #201c16;
+  --bg-card: #2b261f;
+  --surface: rgba(255, 255, 255, 0.04);
+  --accent: #e07d35;
+  --accent-hover: #f0944d;
+  --accent-muted: rgba(224, 125, 53, 0.12);
+  --accent-glow: rgba(224, 125, 53, 0.28);
+  --accent-bright: #f0a060;
+  --text-primary: #ece6dc;
+  --text-secondary: #8a8070;
+  --text-muted: #524c44;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(255, 255, 255, 0.14);
+  --border-glow: rgba(224, 125, 53, 0.4);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-bg-strong: rgba(255, 255, 255, 0.06);
   --glass-blur: blur(16px) saturate(180%);
   --danger: #ff6b8a;
   --danger-muted: rgba(255, 107, 138, 0.12);
-  --gradient-violet: linear-gradient(135deg, #CF9FFF 0%, #9F7AEA 50%, #7C3AED 100%);
-  --gradient-aurora: linear-gradient(135deg, #CF9FFF 0%, #a78bfa 30%, #818cf8 60%, #6366f1 100%);
-  --gradient-mesh: linear-gradient(135deg, #0d0b1a 0%, #1a1035 25%, #0f0d20 50%, #1c1040 75%, #0d0b1a 100%);
-  --shadow-glow: 0 0 30px rgba(207, 159, 255, 0.15), 0 0 60px rgba(207, 159, 255, 0.08);
-  --shadow-glow-strong: 0 0 40px rgba(207, 159, 255, 0.3), 0 0 80px rgba(207, 159, 255, 0.15);
+  --gradient-violet: linear-gradient(135deg, #e07d35 0%, #bd5f23 100%);
+  --gradient-2: linear-gradient(135deg, #e07d35 0%, #8f4a1d 100%);
+  --gradient-aurora: linear-gradient(135deg, #2b261f 0%, #181510 50%, #090806 100%);
+  --gradient-mesh: radial-gradient(circle at 20% 20%, rgba(224,125,53,0.08), transparent 50%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.03), transparent 45%), #090806;
+  --shadow-glow: 0 0 26px rgba(224, 125, 53, 0.12);
+  --shadow-glow-strong: 0 0 36px rgba(224, 125, 53, 0.22);
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -60,7 +65,7 @@ body {
   min-height: 100svh;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -86,10 +91,9 @@ body {
   width: 200%;
   height: 200%;
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(207, 159, 255, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(129, 140, 248, 0.10) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, rgba(167, 139, 250, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 60%, rgba(124, 58, 237, 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 50%, rgba(224, 125, 53, 0.16) 0%, transparent 54%),
+    radial-gradient(ellipse at 80% 20%, rgba(224, 125, 53, 0.08) 0%, transparent 52%),
+    radial-gradient(ellipse at 50% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
   animation: meshDrift 20s ease-in-out infinite alternate;
 }
 
@@ -100,8 +104,8 @@ body {
   width: 200%;
   height: 200%;
   background:
-    radial-gradient(ellipse at 60% 30%, rgba(207, 159, 255, 0.08) 0%, transparent 40%),
-    radial-gradient(ellipse at 30% 70%, rgba(99, 102, 241, 0.06) 0%, transparent 40%);
+    radial-gradient(ellipse at 60% 30%, rgba(224, 125, 53, 0.08) 0%, transparent 44%),
+    radial-gradient(ellipse at 30% 70%, rgba(255, 255, 255, 0.03) 0%, transparent 40%);
   animation: meshDrift 25s ease-in-out infinite alternate-reverse;
 }
 
@@ -357,4 +361,17 @@ input[type="range"].accent-violet::-webkit-slider-runnable-track {
   box-shadow: 0 0 12px var(--theme-accent-88, rgba(207, 159, 255, 0.53));
   filter: drop-shadow(0 0 6px var(--theme-accent-88, rgba(207, 159, 255, 0.53)));
   transition: width 100ms ease-out;
+}
+
+.beat-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 18% 30%, rgba(var(--theme-r), var(--theme-g), var(--theme-b), calc(0.04 + var(--audio-bass) * 0.2)) 0%, transparent 42%),
+    radial-gradient(circle at 82% 70%, rgba(var(--theme-r), var(--theme-g), var(--theme-b), calc(0.03 + var(--audio-mid) * 0.18)) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, calc(0.015 + var(--audio-treble) * 0.06)) 0%, transparent 48%);
+  transform: scale(calc(1 + var(--audio-bass) * 0.015));
+  transition: transform 90ms linear, opacity 90ms linear;
 }

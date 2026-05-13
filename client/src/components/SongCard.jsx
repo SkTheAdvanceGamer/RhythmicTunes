@@ -1,7 +1,7 @@
 import { useTheme } from '../context/ThemeContext'
 import { useAudioReactiveStore } from '../store/audioReactiveStore'
 import { usePlayerStore } from '../store/playerStore'
-import { formatDuration } from '../utils/songUtils'
+import { defaultCoverUrl, formatDuration } from '../utils/songUtils'
 
 function SongCard({ song, onPlay, favoriteButton = null }) {
   const { bass } = useAudioReactiveStore()
@@ -44,7 +44,15 @@ function SongCard({ song, onPlay, favoriteButton = null }) {
 
       {/* Cover Art */}
       <div className="relative mb-3 overflow-hidden rounded-lg">
-        <img src={song.coverUrl} alt={`${song.title} cover`} className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+        <img
+          src={song.coverUrl || defaultCoverUrl}
+          alt={`${song.title} cover`}
+          className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={(event) => {
+            event.currentTarget.onerror = null
+            event.currentTarget.src = defaultCoverUrl
+          }}
+        />
         <div
           className="absolute bottom-2 right-2 grid h-10 w-10 place-items-center rounded-full opacity-0 shadow-xl transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
           style={{ background: 'var(--accent)', transform: 'translateY(8px)', boxShadow: '0 4px 20px rgba(207,159,255,0.4)' }}

@@ -1,5 +1,4 @@
-import { AnimatePresence } from 'framer-motion'
-import { Navigate, Route, Routes, Link, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, Link } from 'react-router-dom'
 import MusicPlayer from './components/MusicPlayer'
 import PageTransition from './components/PageTransition'
 import { ThemeProvider } from './context/ThemeContext'
@@ -24,12 +23,12 @@ function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? children : <Navigate to="/login" replace />
 }
-
+<h1 ></h1>
 function AdminRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (!user?.isAdmin) return <Navigate to="/dashboard" replace />
+  if (!(user?.isAdmin || user?.role === 'admin' || user?.role === 'staff')) return <Navigate to="/dashboard" replace />
   return children
 }
 
@@ -115,31 +114,28 @@ function NotFoundPage() {
 
 function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const location = useLocation()
 
   return (
     <ThemeProvider>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
-          <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
-          <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
-          <Route path="/activity" element={<ProtectedRoute><PageTransition><ActivityPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/explore" element={<ProtectedRoute><PageTransition><ExplorePage /></PageTransition></ProtectedRoute>} />
-          <Route path="/liked" element={<ProtectedRoute><PageTransition><LikedSongsPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/search" element={<ProtectedRoute><PageTransition><SearchPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/playlists" element={<ProtectedRoute><PageTransition><PlaylistsPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/playlist/:id" element={<ProtectedRoute><PageTransition><PlaylistDetailPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/artists" element={<ProtectedRoute><PageTransition><ArtistsPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/artist/:id" element={<ProtectedRoute><PageTransition><ArtistDetailPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/history" element={<ProtectedRoute><PageTransition><HistoryPage /></PageTransition></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>} />
-          <Route path="/song/:id" element={<ProtectedRoute><PageTransition><SongProfilePage /></PageTransition></ProtectedRoute>} />
-          <Route path="/admin" element={<AdminRoute><PageTransition><AdminPage /></PageTransition></AdminRoute>} />
-          <Route path="*" element={<PageTransition><NotFoundPage /></PageTransition>} />
-        </Routes>
-      </AnimatePresence>
+      <Routes>
+        <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
+        <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
+        <Route path="/activity" element={<ProtectedRoute><PageTransition><ActivityPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/explore" element={<ProtectedRoute><PageTransition><ExplorePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/liked" element={<ProtectedRoute><PageTransition><LikedSongsPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/search" element={<ProtectedRoute><PageTransition><SearchPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/playlists" element={<ProtectedRoute><PageTransition><PlaylistsPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/playlist/:id" element={<ProtectedRoute><PageTransition><PlaylistDetailPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/artists" element={<ProtectedRoute><PageTransition><ArtistsPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/artist/:id" element={<ProtectedRoute><PageTransition><ArtistDetailPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><PageTransition><HistoryPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/song/:id" element={<ProtectedRoute><PageTransition><SongProfilePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/admin" element={<AdminRoute><PageTransition><AdminPage /></PageTransition></AdminRoute>} />
+        <Route path="*" element={<PageTransition><NotFoundPage /></PageTransition>} />
+      </Routes>
       {isAuthenticated && <MusicPlayer />}
     </ThemeProvider>
   )

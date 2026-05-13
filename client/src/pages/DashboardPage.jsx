@@ -1,48 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axiosInstance from '../api/axiosInstance'
 import AppLayout from '../components/AppLayout'
 import FavoriteButton from '../components/FavoriteButton'
-import SongCard from '../components/SongCard'
 import { useAuthStore } from '../store/authStore'
 import { usePlayerStore } from '../store/playerStore'
-import { getSongId, normalizeSong, normalizeSongs } from '../utils/songUtils'
-
-function SongRow({ song, index, onPlay, isActive, favoriteButton }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onPlay(song)}
-      className="group grid w-full grid-cols-[2rem_3rem_1fr_auto] items-center gap-3 rounded-lg px-3 py-2 text-left transition-all duration-200"
-      style={{ background: isActive ? 'var(--accent-muted)' : 'transparent' }}
-      onMouseEnter={(event) => { if (!isActive) event.currentTarget.style.background = 'var(--glass-bg)' }}
-      onMouseLeave={(event) => { if (!isActive) event.currentTarget.style.background = 'transparent' }}
-    >
-      <span className="text-center text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-        {index + 1}
-      </span>
-      <img src={song.coverUrl} alt="" className="h-10 w-10 rounded object-cover" />
-      <div className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{song.title}</span>
-        <span className="block truncate text-xs" style={{ color: 'var(--text-secondary)' }}>{song.artistName}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        {favoriteButton}
-        <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-          {song.playCount ? `${song.playCount} plays` : ''}
-        </span>
-        <div
-          className="grid h-8 w-8 place-items-center rounded-full opacity-0 transition-all duration-200 group-hover:opacity-100"
-          style={{ background: 'var(--accent)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#0d0b1a">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </div>
-      </div>
-    </button>
-  )
-}
+import { formatDuration, getSongId, normalizeSong, normalizeSongs } from '../utils/songUtils'
 
 function DashboardPage() {
   const user = useAuthStore((state) => state.user)
@@ -63,19 +26,31 @@ function DashboardPage() {
       setError('')
 
       try {
-        const [trendingResponse, personalizedResponse, playlistsResponse, likedResponse] = await Promise.all([
+        const [trendingResponse, personalizedResponse, playlistsResponse, likedResponse, songsResponse] = await Promise.allSettled([
           axiosInstance.get('/api/recommendations/trending'),
           axiosInstance.get('/api/recommendations/history'),
           axiosInstance.get('/api/playlists'),
           axiosInstance.get('/api/songs/liked'),
+          axiosInstance.get('/api/songs?limit=30'),
         ])
 
         if (!isMounted) return
 
-        setTrendingSongs(normalizeSongs(trendingResponse.data))
-        setPersonalizedSongs(normalizeSongs(personalizedResponse.data))
-        setPlaylists(playlistsResponse.data || [])
-        setLikedSongs(normalizeSongs(likedResponse.data))
+        const allSongs =
+          songsResponse.status === 'fulfilled'
+            ? normalizeSongs(songsResponse.value?.data?.songs || songsResponse.value?.data || [])
+            : []
+
+        const trending = trendingResponse.status === 'fulfilled' ? normalizeSongs(trendingResponse.value.data) : []
+        const personalized =
+          personalizedResponse.status === 'fulfilled'
+            ? normalizeSongs(personalizedResponse.value.data)
+            : []
+
+        setTrendingSongs(trending.length ? trending : allSongs.slice(0, 12))
+        setPersonalizedSongs(personalized.length ? personalized : allSongs.slice(4, 16))
+        setPlaylists(playlistsResponse.status === 'fulfilled' ? playlistsResponse.value.data || [] : [])
+        setLikedSongs(likedResponse.status === 'fulfilled' ? normalizeSongs(likedResponse.value.data) : [])
       } catch (requestError) {
         if (isMounted) {
           setError(requestError.response?.data?.message || 'Unable to load your dashboard right now.')
@@ -86,27 +61,26 @@ function DashboardPage() {
     }
 
     fetchDashboardData()
-
     return () => {
       isMounted = false
     }
   }, [])
 
+  const featuredSong = trendingSongs[0] || personalizedSongs[0] || null
+  const upNextSongs = useMemo(() => trendingSongs.slice(0, 7), [trendingSongs])
+
   const handlePlay = (song) => {
+    if (!song) return
     playSong(song)
     ;[...trendingSongs, ...personalizedSongs].forEach(addToQueue)
   }
 
   const handleToggleLike = async (song) => {
     const songId = getSongId(song)
-
-    if (!songId) {
-      return
-    }
+    if (!songId) return
 
     const isLiked = likedSongs.some((likedSong) => getSongId(likedSong) === songId)
     setPendingLikeSongIds((current) => (current.includes(songId) ? current : [...current, songId]))
-    setError('')
 
     try {
       if (isLiked) {
@@ -115,12 +89,8 @@ function DashboardPage() {
       } else {
         await axiosInstance.post(`/api/songs/${songId}/like`)
         const normalizedSong = normalizeSong(song)
-
         if (normalizedSong) {
-          setLikedSongs((current) => [
-            normalizedSong,
-            ...current.filter((likedSong) => getSongId(likedSong) !== songId),
-          ])
+          setLikedSongs((current) => [normalizedSong, ...current.filter((likedSong) => getSongId(likedSong) !== songId)])
         }
       }
     } catch (requestError) {
@@ -133,6 +103,26 @@ function DashboardPage() {
   const currentSongId = currentSong?._id || currentSong?.id
   const likedSongIds = new Set(likedSongs.map((song) => getSongId(song)))
 
+  const renderFavoriteButton = (song) => {
+    const songId = getSongId(song)
+    const isLiked = likedSongIds.has(songId)
+    const isPending = pendingLikeSongIds.includes(songId)
+
+    return (
+      <FavoriteButton
+        isLiked={isLiked}
+        isLoading={isPending}
+        onClick={() => handleToggleLike(song)}
+        className="h-8 w-8"
+        style={{
+          color: isLiked ? '#e06060' : 'var(--text-secondary)',
+          background: 'rgba(0,0,0,0.25)',
+          border: '1px solid var(--border)',
+        }}
+      />
+    )
+  }
+
   const getGreeting = () => {
     const hour = new Date().getHours()
     if (hour < 12) return 'Good morning'
@@ -140,52 +130,11 @@ function DashboardPage() {
     return 'Good evening'
   }
 
-  const renderFavoriteButton = (song, size = 'card') => {
-    const songId = getSongId(song)
-    const isLiked = likedSongIds.has(songId)
-    const isPending = pendingLikeSongIds.includes(songId)
-    const isCard = size === 'card'
-
-    return (
-      <FavoriteButton
-        isLiked={isLiked}
-        isLoading={isPending}
-        onClick={() => handleToggleLike(song)}
-        className={isCard ? 'h-9 w-9' : 'h-8 w-8'}
-        style={{
-          color: isLiked ? '#ff6b81' : 'var(--text-primary)',
-          background: isCard ? 'rgba(13, 11, 26, 0.72)' : 'transparent',
-          border: isCard ? '1px solid rgba(255,255,255,0.12)' : '1px solid transparent',
-          backdropFilter: isCard ? 'blur(14px)' : 'none',
-          WebkitBackdropFilter: isCard ? 'blur(14px)' : 'none',
-        }}
-      />
-    )
-  }
-
   return (
     <AppLayout>
-      <section className="mb-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold text-[var(--text-primary)] md:text-4xl">
-              {getGreeting()}{user?.name ? `, ${user.name}` : ''}
-            </h1>
-            <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Here's what's been playing. Dive back in or discover something new.
-            </p>
-          </div>
-          <Link
-            to="/liked"
-            className="inline-flex items-center gap-2 self-start rounded-full px-5 py-2 text-sm font-bold transition-all duration-200 hover:scale-[1.02]"
-            style={{ background: 'var(--bg-highlight)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21s-6.72-4.35-9.33-8.08C.79 10.24 1.4 6.2 4.72 4.61c2.14-1.02 4.66-.51 6.28 1.27 1.62-1.78 4.14-2.29 6.28-1.27 3.32 1.59 3.93 5.63 2.05 8.31C18.72 16.65 12 21 12 21z" />
-            </svg>
-            Liked Songs
-          </Link>
-        </div>
+      <section className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--text-secondary)' }}>Welcome back</p>
+        <h1 className="mt-1 text-3xl font-extrabold" style={{ color: 'var(--text-primary)' }}>{getGreeting()}{user?.name ? `, ${user.name}` : ''}</h1>
       </section>
 
       {error && (
@@ -195,153 +144,137 @@ function DashboardPage() {
       )}
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, index) => (
-            <div key={index} className="skeleton h-20 w-full" />
-          ))}
+        <div className="grid gap-3 md:grid-cols-3">
+          {[...Array(6)].map((_, i) => <div key={i} className="skeleton h-36 rounded-2xl" />)}
         </div>
       ) : (
         <>
-          <section className="mb-10">
-            <div
-              className="overflow-hidden rounded-2xl border p-5"
-              style={{ background: 'linear-gradient(135deg, rgba(207,159,255,0.12), rgba(255,107,129,0.08))', borderColor: 'rgba(255,255,255,0.08)' }}
-            >
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--accent)' }}>
-                    Your Collection
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black text-[var(--text-primary)]">Liked Songs</h2>
-                  <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    {likedSongs.length
-                      ? `${likedSongs.length} tracks saved for the moments you want to replay.`
-                      : 'Tap the heart on any track to build your liked songs playlist.'}
-                  </p>
-                </div>
-                <Link
-                  to="/liked"
-                  className="inline-flex items-center gap-2 self-start rounded-full px-5 py-2 text-sm font-bold"
-                  style={{ background: 'var(--accent)', color: '#0d0b1a' }}
+          <section className="mb-8 grid gap-3 lg:grid-cols-[2fr_1fr]">
+            <div className="rounded-2xl border p-6" style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}>
+              <p className="mb-2 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ background: 'var(--accent-muted)', color: 'var(--accent-bright)' }}>Featured Now</p>
+              <h2 className="text-3xl font-black leading-tight" style={{ color: 'var(--text-primary)' }}>{featuredSong?.title || 'No tracks yet'}</h2>
+              <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>{featuredSong?.artistName || 'Start playing songs to personalize this section'}</p>
+              <div className="mt-5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePlay(featuredSong)}
+                  className="rounded-full px-5 py-2 text-sm font-bold"
+                  style={{ background: 'var(--accent)', color: '#fff' }}
+                  disabled={!featuredSong}
                 >
-                  Open playlist
+                  Play
+                </button>
+                <Link to="/search" className="rounded-full px-5 py-2 text-sm font-semibold" style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                  Explore
                 </Link>
               </div>
+            </div>
 
-              {likedSongs.length > 0 && (
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                  {likedSongs.slice(0, 3).map((song) => (
-                    <button
-                      key={song._id}
-                      type="button"
-                      onClick={() => handlePlay(song)}
-                      className="flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200"
-                      style={{ background: 'rgba(255,255,255,0.04)' }}
-                      onMouseEnter={(event) => { event.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-                      onMouseLeave={(event) => { event.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-                    >
-                      <img src={song.coverUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                      <div className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{song.title}</span>
-                        <span className="block truncate text-xs" style={{ color: 'var(--text-secondary)' }}>{song.artistName}</span>
-                      </div>
-                      {renderFavoriteButton(song, 'row')}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="rounded-2xl border" style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}>
+              <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border)' }}>
+                <h3 className="text-sm font-extrabold">Up Next</h3>
+                <button className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }} type="button">Queue</button>
+              </div>
+              <div className="max-h-[340px] overflow-y-auto">
+                {upNextSongs.map((song) => (
+                  <button
+                    key={song._id}
+                    type="button"
+                    onClick={() => handlePlay(song)}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left"
+                    style={{ background: currentSongId === song._id ? 'var(--accent-muted)' : 'transparent' }}
+                  >
+                    <img src={song.coverUrl} alt="" className="h-9 w-9 rounded-md object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{song.title}</p>
+                      <p className="truncate text-xs" style={{ color: 'var(--text-secondary)' }}>{song.artistName}</p>
+                    </div>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDuration(song.duration)}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
 
-          {trendingSongs.length > 0 && (
-            <section className="mb-10">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-[var(--text-primary)]">Trending Now</h2>
-                <Link to="/search" className="text-xs font-bold transition-colors" style={{ color: 'var(--text-secondary)' }}>
-                  Show all
-                </Link>
-              </div>
-              <div className="horizontal-scroll stagger-children">
-                {trendingSongs.map((song) => (
-                  <SongCard
-                    key={song._id}
-                    song={song}
-                    onPlay={handlePlay}
-                    favoriteButton={renderFavoriteButton(song)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+          <section className="mb-8">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-extrabold">Trending Tracks</h2>
+              <Link to="/search" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>View all</Link>
+            </div>
+            <div className="space-y-1">
+              {trendingSongs.slice(0, 8).map((song, index) => (
+                <button
+                  key={song._id}
+                  type="button"
+                  onClick={() => handlePlay(song)}
+                  className="group grid w-full grid-cols-[26px_44px_1fr_58px_42px] items-center gap-3 rounded-lg px-2 py-2 text-left"
+                  style={{ background: currentSongId === song._id ? 'var(--accent-muted)' : 'transparent' }}
+                >
+                  <span className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>{index + 1}</span>
+                  <img src={song.coverUrl} alt="" className="h-10 w-10 rounded-md object-cover" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{song.title}</p>
+                    <p className="truncate text-xs" style={{ color: 'var(--text-secondary)' }}>{song.artistName}</p>
+                  </div>
+                  <span className="text-xs text-right" style={{ color: 'var(--text-muted)' }}>{song.playCount ? `${song.playCount}` : '--'}</span>
+                  <div className="flex justify-end">{renderFavoriteButton(song)}</div>
+                </button>
+              ))}
+            </div>
+          </section>
 
-          {personalizedSongs.length > 0 && (
-            <section className="mb-10">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-[var(--text-primary)]">Made for You</h2>
-              </div>
-              <div className="rounded-xl p-2" style={{ background: 'var(--bg-secondary)' }}>
-                {personalizedSongs.map((song, index) => (
-                  <SongRow
-                    key={song._id}
-                    song={song}
-                    index={index}
-                    onPlay={handlePlay}
-                    isActive={currentSongId === song._id}
-                    favoriteButton={renderFavoriteButton(song, 'row')}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="mb-10">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">Your Playlists</h2>
-              <Link to="/playlists" className="text-xs font-bold transition-colors" style={{ color: 'var(--text-secondary)' }}>
-                Show all
-              </Link>
+          <section className="mb-8">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-extrabold">Albums / Playlists For You</h2>
+              <Link to="/playlists" className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Browse all</Link>
             </div>
             {playlists.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {playlists.map((playlist) => (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {playlists.slice(0, 8).map((playlist) => (
                   <Link
                     key={playlist._id}
                     to={`/playlist/${playlist._id}`}
-                    className="group flex items-center gap-4 overflow-hidden rounded-lg transition-all duration-200"
-                    style={{ background: 'var(--bg-highlight)' }}
-                    onMouseEnter={(event) => { event.currentTarget.style.background = 'var(--surface)' }}
-                    onMouseLeave={(event) => { event.currentTarget.style.background = 'var(--bg-highlight)' }}
+                    className="rounded-xl border p-3"
+                    style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
                   >
-                    <div
-                      className="grid h-16 w-16 flex-shrink-0 place-items-center"
-                      style={{ background: 'var(--gradient-2)' }}
-                    >
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="white" opacity="0.8">
-                        <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 py-3 pr-4">
-                      <h3 className="truncate text-sm font-bold text-[var(--text-primary)]">{playlist.playlistName}</h3>
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        {playlist.songs?.length || 0} songs · {playlist.isPublic ? 'Public' : 'Private'}
-                      </p>
-                    </div>
+                    <div className="mb-3 h-28 w-full rounded-lg" style={{ background: 'var(--gradient-2)' }} />
+                    <h3 className="truncate text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{playlist.playlistName}</h3>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{playlist.songs?.length || 0} songs</p>
                   </Link>
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl px-6 py-8 text-center" style={{ background: 'var(--bg-secondary)' }}>
+              <div className="rounded-xl border px-6 py-8 text-center" style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No playlists yet. Create one to get started.</p>
-                <Link
-                  to="/playlists"
-                  className="mt-3 inline-block rounded-full px-5 py-2 text-sm font-bold"
-                  style={{ background: 'var(--accent)', color: '#0d0b1a' }}
-                >
+                <Link to="/playlists" className="mt-3 inline-block rounded-full px-5 py-2 text-sm font-bold" style={{ background: 'var(--accent)', color: '#fff' }}>
                   Create playlist
                 </Link>
               </div>
             )}
           </section>
+
+          {personalizedSongs.length > 0 && (
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold">Made for You</h2>
+              </div>
+              <div className="horizontal-scroll">
+                {personalizedSongs.slice(0, 10).map((song) => (
+                  <button
+                    key={song._id}
+                    type="button"
+                    onClick={() => handlePlay(song)}
+                    className="w-40 rounded-xl border p-2 text-left"
+                    style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
+                  >
+                    <img src={song.coverUrl} alt="" className="mb-2 h-32 w-full rounded-lg object-cover" />
+                    <p className="truncate text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{song.title}</p>
+                    <p className="truncate text-xs" style={{ color: 'var(--text-secondary)' }}>{song.artistName}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
     </AppLayout>

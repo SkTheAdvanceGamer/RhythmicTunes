@@ -1,7 +1,10 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
+const path = require("path");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const artistRoutes = require("./routes/artistRoutes");
 const authRoutes = require("./routes/authRoutes");
@@ -10,10 +13,6 @@ const playlistRoutes = require("./routes/playlistRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 const songRoutes = require("./routes/songRoutes");
 const userRoutes = require("./routes/userRoutes");
-
-dotenv.config();
-
-const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +33,10 @@ app.use("/api/users", userRoutes);
 app.use('/songs', express.static('uploads/audio'));
 app.use('/covers', express.static('uploads/covers'));
 
+// Serve prebuilt frontend so the app can run without Vite in constrained environments
+const clientDistPath = path.join(__dirname, "..", "client", "dist");
+app.use(express.static(clientDistPath));
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -45,6 +48,10 @@ mongoose
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.get(/^\/(?!api|uploads|songs|covers).*/, (req, res) => {
+  return res.sendFile(path.join(clientDistPath, "index.html"));
 });
 
 app.listen(PORT, () => {

@@ -4,12 +4,35 @@ import { getSongId } from '../utils/songUtils'
 const findCurrentIndex = (queue, currentSong) =>
   queue.findIndex((song) => getSongId(song) === getSongId(currentSong))
 
+const isPlayableSong = (song) =>
+  Boolean(
+    (song?.fileUrl && String(song.fileUrl).trim()) ||
+      (song?.youtubeVideoId && String(song.youtubeVideoId).trim())
+  )
+
 export const usePlayerStore = create((set, get) => ({
   currentSong: null,
   queue: [],
   isPlaying: false,
+  clearPlayer: () => {
+    set({ currentSong: null, queue: [], isPlaying: false })
+  },
+  setQueue: (songs = []) => {
+    const normalizedQueue = Array.isArray(songs) ? songs.filter(Boolean) : []
+    const playableQueue = normalizedQueue.filter(isPlayableSong)
+    const { currentSong, isPlaying } = get()
+    const hasCurrentInQueue =
+      currentSong &&
+      playableQueue.some((song) => getSongId(song) === getSongId(currentSong))
+
+    set({
+      queue: playableQueue,
+      currentSong: hasCurrentInQueue ? currentSong : playableQueue[0] || null,
+      isPlaying: hasCurrentInQueue ? isPlaying : playableQueue.length > 0,
+    })
+  },
   playSong: (song) => {
-    if (!song) {
+    if (!isPlayableSong(song)) {
       return
     }
 
@@ -33,7 +56,23 @@ export const usePlayerStore = create((set, get) => ({
     }
 
     const currentIndex = findCurrentIndex(queue, currentSong)
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % queue.length
+    let nextIndex = -1
+
+    if (currentIndex === -1) {
+      nextIndex = queue.findIndex(isPlayableSong)
+    } else {
+      for (let i = currentIndex + 1; i < queue.length; i += 1) {
+        if (isPlayableSong(queue[i])) {
+          nextIndex = i
+          break
+        }
+      }
+    }
+
+    if (nextIndex === -1) {
+      set({ isPlaying: false })
+      return
+    }
 
     set({
       currentSong: queue[nextIndex],
@@ -48,8 +87,28 @@ export const usePlayerStore = create((set, get) => ({
     }
 
     const currentIndex = findCurrentIndex(queue, currentSong)
-    const prevIndex =
-      currentIndex <= 0 ? queue.length - 1 : (currentIndex - 1) % queue.length
+    let prevIndex = -1
+
+    if (currentIndex === -1) {
+      for (let i = queue.length - 1; i >= 0; i -= 1) {
+        if (isPlayableSong(queue[i])) {
+          prevIndex = i
+          break
+        }
+      }
+    } else {
+      for (let i = currentIndex - 1; i >= 0; i -= 1) {
+        if (isPlayableSong(queue[i])) {
+          prevIndex = i
+          break
+        }
+      }
+    }
+
+    if (prevIndex === -1) {
+      set({ isPlaying: false })
+      return
+    }
 
     set({
       currentSong: queue[prevIndex],
@@ -57,7 +116,7 @@ export const usePlayerStore = create((set, get) => ({
     })
   },
   addToQueue: (song) => {
-    if (!song) {
+    if (!isPlayableSong(song)) {
       return
     }
 

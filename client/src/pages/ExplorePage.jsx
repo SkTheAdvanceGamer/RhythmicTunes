@@ -3,6 +3,7 @@ import axiosInstance from '../api/axiosInstance'
 import AppLayout from '../components/AppLayout'
 import { useAuthStore } from '../store/authStore'
 import { usePlayerStore } from '../store/playerStore'
+import { normalizeSong } from '../utils/songUtils'
 
 function ExplorePage() {
   const { user } = useAuthStore()
@@ -21,16 +22,20 @@ function ExplorePage() {
         setError('')
         try {
           const { data } = await axiosInstance.get('/api/songs')
-          const songArray = data.songs || data; 
-          const mappedLocal = songArray.map(song => ({
-            title: song.title,
-            artist: song.artist?.name || song.artistName || 'Unknown',
-            image: song.coverUrl,
-            streamUrl: song.fileUrl,
-            duration: song.duration || 0,
-            isLocal: true
-          }))
-          setResults(mappedLocal)
+          const songArray = data.songs || data;
+          const normalized = songArray.map(song => {
+            const n = normalizeSong(song)
+            if (!n) return null
+            return {
+              title: n.title,
+              artist: n.artistName || 'Unknown',
+              image: n.coverUrl,
+              streamUrl: n.fileUrl,
+              duration: n.duration || 0,
+              isLocal: true
+            }
+          }).filter(Boolean)
+          setResults(normalized)
         } catch (err) {
           console.error('Failed to load local DB catalog', err)
         } finally {
@@ -48,8 +53,17 @@ function ExplorePage() {
     setIsLoading(true)
     setError('')
     try {
-      const { data } = await axiosInstance.get(`/api/songs/external-search?q=${encodeURIComponent(query)}`)
-      setResults(data)
+      const { data } = await axiosInstance.get(`/api/songs/youtube-search?q=${encodeURIComponent(query)}`)
+      const mapped = (data || []).map((item) => ({
+        title: item.title,
+        artist: item.artistName || item.artist || 'YouTube Artist',
+        image: item.coverUrl || '',
+        streamUrl: item.fileUrl || '',
+        youtubeVideoId: item.youtubeVideoId || '',
+        duration: item.duration || 0,
+        isLocal: false,
+      }))
+      setResults(mapped)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch external songs')
     } finally {
@@ -58,8 +72,8 @@ function ExplorePage() {
   }
 
   const handlePlay = (track) => {
-    if (!track.streamUrl) {
-      setError('No audio preview available for this track.')
+    if (!track.streamUrl && !track.youtubeVideoId) {
+      setError('No playable source available for this track.')
       setTimeout(() => setError(''), 4000)
       return
     }
@@ -68,8 +82,10 @@ function ExplorePage() {
       _id: `external-${Math.random()}`,
       title: track.title,
       artistId: { name: track.artist },
+      artistName: track.artist,
       coverUrl: track.image,
       fileUrl: track.streamUrl,
+      youtubeVideoId: track.youtubeVideoId,
       duration: track.duration
     }
 
@@ -80,7 +96,7 @@ function ExplorePage() {
 
   const handleSaveToLibrary = async (track) => {
     if (!track.streamUrl) {
-      setError('Cannot save a track without an audio stream preview.')
+      setError('Only preview-based tracks can be saved to DB directly.')
       setTimeout(() => setError(''), 4000)
       return
     }
@@ -182,7 +198,7 @@ function ExplorePage() {
                   <p className="truncate text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{track.artist}</p>
                 </div>
 
-                {user?.isAdmin && !track.isLocal && (
+                {(user?.isAdmin || user?.role === 'admin' || user?.role === 'staff') && !track.isLocal && track.streamUrl && (
                   <button 
                     onClick={() => handleSaveToLibrary(track)}
                     className="mt-4 w-full rounded-lg py-2 text-xs font-bold transition-all hover:scale-[1.02]"

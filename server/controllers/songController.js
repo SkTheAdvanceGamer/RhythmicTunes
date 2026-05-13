@@ -4,6 +4,7 @@ const ListeningHistory = require("../models/ListeningHistory");
 const Song = require("../models/Song");
 const User = require("../models/User");
 const { searchSpotifyTracks } = require("../services/spotifyService");
+const { searchYouTubeSongs } = require("../services/youtubeService");
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -83,6 +84,47 @@ const externalSearchSongs = async (req, res) => {
     return res.json(results);
   } catch (error) {
     return res.status(500).json({ message: "External search failed.", error: error.message });
+  }
+};
+
+const youtubeSearchSongs = async (req, res) => {
+  try {
+    const query = (req.query.q || "").trim();
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required." });
+    }
+
+    const results = await searchYouTubeSongs(query, 12);
+    return res.json(results);
+  } catch (error) {
+    return res.status(502).json({
+      message: "Unable to fetch YouTube tracks right now.",
+      error: error.message,
+    });
+  }
+};
+
+const youtubeResolveSong = async (req, res) => {
+  try {
+    const title = String(req.query.title || "").trim();
+    const artist = String(req.query.artist || "").trim();
+    const query = `${title} ${artist}`.trim();
+
+    if (!query) {
+      return res.status(400).json({ message: "Song title or artist is required." });
+    }
+
+    const results = await searchYouTubeSongs(query, 1);
+    if (!results.length) {
+      return res.status(404).json({ message: "No playable YouTube match found." });
+    }
+
+    return res.json(results[0]);
+  } catch (error) {
+    return res.status(502).json({
+      message: "Unable to resolve this song from YouTube right now.",
+      error: error.message,
+    });
   }
 };
 
@@ -274,5 +316,7 @@ module.exports = {
   getTrendingSongs,
   likeSong,
   searchSongs,
+  youtubeSearchSongs,
+  youtubeResolveSong,
   unlikeSong,
 };

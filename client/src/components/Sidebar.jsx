@@ -1,6 +1,4 @@
-import { motion } from 'framer-motion'
 import { Link, useLocation } from 'react-router-dom'
-import { useTheme } from '../context/ThemeContext'
 import { useAudioReactiveStore } from '../store/audioReactiveStore'
 import { usePlayerStore } from '../store/playerStore'
 import { useAuthStore } from '../store/authStore'
@@ -23,7 +21,7 @@ const navItems = [
     icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" /></svg>,
   },
   {
-    label: 'Liked Songs', to: '/liked',
+    label: 'Liked', to: '/liked',
     icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-6.72-4.35-9.33-8.08C.79 10.24 1.4 6.2 4.72 4.61c2.14-1.02 4.66-.51 6.28 1.27 1.62-1.78 4.14-2.29 6.28-1.27 3.32 1.59 3.93 5.63 2.05 8.31C18.72 16.65 12 21 12 21z" /></svg>,
   },
   {
@@ -49,44 +47,34 @@ function Sidebar() {
   const user = useAuthStore((s) => s.user)
   const { bass } = useAudioReactiveStore()
   const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const { accentHex } = useTheme()
+  const canAccessAdmin = Boolean(user?.isAdmin || user?.role === 'admin' || user?.role === 'staff')
 
   const sidebarGlow = isPlaying
-    ? `inset -1px 0 ${20 + bass * 30}px rgba(207, 159, 255, ${0.03 + bass * 0.06})`
+    ? `inset -1px 0 ${20 + bass * 26}px rgba(224, 125, 53, ${0.05 + bass * 0.08})`
     : 'none'
 
   return (
     <aside
-      className="glass hidden w-[240px] flex-shrink-0 flex-col lg:flex"
+      className="glass hidden w-[72px] flex-shrink-0 flex-col md:flex"
       style={{ borderRight: '1px solid var(--border)', zIndex: 10, boxShadow: sidebarGlow, transition: 'box-shadow 100ms ease-out' }}
     >
-      <div className="sticky top-0 flex h-full flex-col gap-2 p-4">
-        {/* Brand */}
-        <div className="mb-6 px-3 pt-2">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="grid h-9 w-9 place-items-center rounded-full"
-              style={{
-                background: 'var(--gradient-violet)',
-                boxShadow: isPlaying ? `0 0 ${12 + bass * 18}px rgba(207,159,255,${0.3 + bass * 0.4})` : '0 0 10px rgba(207,159,255,0.2)',
-                transition: 'box-shadow 100ms ease-out',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#0d0b1a">
-                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-              </svg>
-            </div>
-            <div>
-              <span className="text-sm font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>RhythmicTunes</span>
-              <span className="block text-[10px] font-medium uppercase tracking-[0.15em]" style={{ color: 'var(--text-muted)' }}>
-                Your Melodic Companion
-              </span>
-            </div>
+      <div className="sticky top-0 flex h-full flex-col items-center gap-1 px-2 py-4">
+        <Link to="/dashboard" className="mb-3" title="RhythmicTunes">
+          <div
+            className="grid h-10 w-10 place-items-center rounded-xl"
+            style={{
+              background: 'var(--gradient-violet)',
+              boxShadow: isPlaying ? `0 0 ${10 + bass * 12}px rgba(224,125,53,${0.35 + bass * 0.3})` : '0 0 8px rgba(224,125,53,0.25)',
+              transition: 'box-shadow 100ms ease-out',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+            </svg>
           </div>
-        </div>
+        </Link>
 
-        {/* Nav */}
-        <nav className="flex flex-col gap-0.5">
+        <nav className="flex flex-col items-center gap-1">
           {navItems.map((item) => {
             const isActive = item.match
               ? item.match.some((p) => location.pathname.startsWith(p))
@@ -96,50 +84,40 @@ function Sidebar() {
               <Link
                 key={item.to}
                 to={item.to}
-                className="group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200"
+                title={item.label}
+                className="group relative grid h-11 w-11 place-items-center rounded-xl transition-all duration-200"
                 style={{
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  color: isActive ? 'var(--accent-bright)' : 'var(--text-secondary)',
                   background: isActive ? 'var(--accent-muted)' : 'transparent',
-                  borderLeft: isActive ? `3px solid ${accentHex}` : '3px solid transparent',
                 }}
               >
-                <span style={{ color: isActive ? accentHex : 'var(--text-secondary)' }}>{item.icon}</span>
-                {item.label}
-                {isActive && (
-                  <motion.span
-                    layoutId="activeTab"
-                    className="ml-auto h-1.5 w-1.5 rounded-full"
-                    style={{ background: accentHex, boxShadow: `0 0 8px ${accentHex}66` }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                  />
-                )}
+                <span>{item.icon}</span>
               </Link>
             )
           })}
         </nav>
 
-        {/* Admin */}
-        {user?.isAdmin && (
-          <Link to="/admin"
-            className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200"
+        {canAccessAdmin && (
+          <Link
+            to="/admin"
+            title="Admin Panel"
+            className="mt-2 grid h-11 w-11 place-items-center rounded-xl text-sm font-semibold transition-all duration-200"
             style={{
-              color: location.pathname === '/admin' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              background: location.pathname === '/admin' ? 'rgba(255,107,138,0.12)' : 'transparent',
+              color: location.pathname.startsWith('/admin') ? 'var(--accent-bright)' : 'var(--text-secondary)',
+              background: location.pathname.startsWith('/admin') ? 'var(--accent-muted)' : 'transparent',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ color: location.pathname === '/admin' ? 'var(--danger)' : 'var(--text-secondary)' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
             </svg>
-            Admin
           </Link>
         )}
 
-        {/* Bottom */}
-        <div className="glass-card mt-auto rounded-xl p-4">
-          <p className="text-xs font-bold" style={{ color: 'var(--accent)' }}>♫ RhythmicTunes</p>
-          <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>
-            Discover your sound. Build playlists. Follow artists.
-          </p>
+        <div className="mt-auto flex flex-col items-center gap-2">
+          <div className="h-px w-8" style={{ background: 'var(--border)' }} />
+          <div className="grid h-8 w-8 place-items-center rounded-full text-[10px] font-bold" style={{ background: 'var(--accent)', color: '#fff' }}>
+            {(user?.name || 'RT').slice(0, 1).toUpperCase()}
+          </div>
         </div>
       </div>
     </aside>

@@ -5,7 +5,7 @@ import AppLayout from '../components/AppLayout'
 import SongCard from '../components/SongCard'
 import { useTheme } from '../context/ThemeContext'
 import { usePlayerStore } from '../store/playerStore'
-import { normalizeSongs, formatDuration } from '../utils/songUtils'
+import { normalizeSong, normalizeSongs, formatDuration } from '../utils/songUtils'
 
 function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -27,11 +27,40 @@ function SearchPage() {
           const { data } = await axiosInstance.get('/api/songs', { signal: controller.signal })
           setResults(normalizeSongs(data.songs || data))
         } else {
-          const { data } = await axiosInstance.get('/api/songs/search', {
-            params: { q: trimmedQuery },
-            signal: controller.signal,
+          const [localRes, youtubeRes] = await Promise.allSettled([
+            axiosInstance.get('/api/songs/search', {
+              params: { q: trimmedQuery },
+              signal: controller.signal,
+            }),
+            axiosInstance.get('/api/songs/youtube-search', {
+              params: { q: trimmedQuery },
+              signal: controller.signal,
+            }),
+          ])
+
+          const localSongs =
+            localRes.status === 'fulfilled'
+              ? normalizeSongs(localRes.value?.data?.songs || localRes.value?.data || [])
+              : []
+          const youtubeSongs =
+            youtubeRes.status === 'fulfilled'
+              ? (youtubeRes.value?.data || []).map((item) => normalizeSong(item)).filter(Boolean)
+              : []
+
+          const combined = [...localSongs]
+          const seen = new Set(
+            combined.map((song) => `${song.title}`.toLowerCase() + '::' + `${song.artistName}`.toLowerCase())
+          )
+
+          youtubeSongs.forEach((song) => {
+            const key = `${song.title}`.toLowerCase() + '::' + `${song.artistName}`.toLowerCase()
+            if (!seen.has(key)) {
+              seen.add(key)
+              combined.push(song)
+            }
           })
-          setResults(normalizeSongs(data.songs || data))
+
+          setResults(combined)
         }
       } catch (requestError) {
         if (requestError.name !== 'CanceledError') {
@@ -92,14 +121,16 @@ function SearchPage() {
         </div>
       ) : results.length ? (
         <>
-          <h2 className="mb-4 text-xl font-bold text-[var(--text-primary)]">
-            Results for "{query.trim()}"
-          </h2>
+          {query.trim() && (
+            <h2 className="mb-4 text-xl font-bold text-[var(--text-primary)]">
+              Results for "{query.trim()}"
+            </h2>
+          )}
 
           {/* Grid view for search results */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {results.map((song) => (
-              <SongCard key={song._id} song={song} onPlay={handlePlay} />
+              <SongCard key={song._id || `${song.title}-${song.artistName}`} song={song} onPlay={handlePlay} />
             ))}
           </div>
 
@@ -113,7 +144,7 @@ function SearchPage() {
             </div>
             {results.map((song, index) => (
               <button
-                key={song._id}
+                key={song._id || `${song.title}-${song.artistName}-${index}`}
                 type="button"
                 onClick={() => handlePlay(song)}
                 className="group grid w-full grid-cols-[2rem_3rem_1fr_6rem] items-center gap-3 rounded-lg px-3 py-2 text-left transition-all duration-200"
