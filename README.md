@@ -1,54 +1,87 @@
-# RhythmicTunes
-
 <div align="center">
 
-### Your Melodic Companion
+<img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:1a120b,35:4a2c1a,70:c46a2f,100:ff9a3d&text=RhythmicTunes&fontSize=56&fontColor=fff&fontAlignY=38&desc=Your%20Melodic%20Companion&descAlignY=58&animation=fadeIn" />
 
-A full-stack MERN music platform with a modern reactive UI, YouTube-powered discovery, playlists, history, recommendations, and role-based admin tools.
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=24&duration=2400&pause=900&color=F09A4D&center=true&vCenter=true&width=920&lines=MERN+Music+Platform+with+YouTube-Backed+Discovery;Reactive+UI+%2B+Smart+Playback+Fallbacks;Playlists%2C+History%2C+Recommendations%2C+Admin+Controls)](https://github.com/SkTheAdvanceGamer/RhythmicTunes)
 
-[![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-ff8a3d?style=for-the-badge)](#frontend)
-[![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-2f2f2f?style=for-the-badge)](#backend)
-[![Database](https://img.shields.io/badge/Database-MongoDB-1f1f1f?style=for-the-badge)](#database)
-[![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20bcryptjs-6b4b2a?style=for-the-badge)](#authentication)
+<p>
+  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20Vite-ff9a3d?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-2f2f2f?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Database-MongoDB-1f1f1f?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Auth-JWT%20%2B%20bcryptjs-5d3c24?style=for-the-badge" />
+</p>
+
+<p>
+  <img src="https://img.shields.io/badge/UI-v3%20Reactive%20Theme-e07d35?style=flat-square" />
+  <img src="https://img.shields.io/badge/Playback-In%20App%20Player-7f4a23?style=flat-square" />
+  <img src="https://img.shields.io/badge/YouTube-Search%20%26%20Resolve-cf4c2d?style=flat-square" />
+  <img src="https://img.shields.io/badge/Role%20Access-User%20%7C%20Admin-3a2a1c?style=flat-square" />
+</p>
 
 </div>
 
 ---
 
-## Overview
-RhythmicTunes is a production-style MERN app designed for music exploration and playback with a Spotify-like experience. It combines:
+## Table of Contents
+1. [Project Vision](#project-vision)
+2. [Experience Highlights](#experience-highlights)
+3. [Architecture](#architecture)
+4. [Tech Stack](#tech-stack)
+5. [Feature Deep Dive](#feature-deep-dive)
+6. [API Surface](#api-surface)
+7. [Local Setup](#local-setup)
+8. [Environment Variables](#environment-variables)
+9. [Admin Bootstrap](#admin-bootstrap)
+10. [Troubleshooting](#troubleshooting)
+11. [Security Notes](#security-notes)
+12. [Contributing](#contributing)
 
-1. A responsive, glassmorphic-reactive frontend.
-2. A scalable REST API backend.
-3. Personalized recommendations from listening behavior.
-4. YouTube-backed dynamic search and playback integration.
+---
 
-## Highlights
-1. Beautiful v3 UI shell (icon sidebar, floating player aesthetics, warm palette).
-2. Beat-reactive background and visual effects while music is playing.
-3. Global song discovery from app library + YouTube results.
-4. Smart playback fallback: preview tracks auto-resolve to YouTube full playback.
-5. Role-aware dashboard and admin access controls.
-6. Playlist, history, liked songs, artist follow, and recommendation flows.
+## Project Vision
+RhythmicTunes is a full-stack music platform designed to feel modern, responsive, and immersive.
+It combines:
 
-## Tech Stack
-### Frontend
-1. React + Vite
-2. TailwindCSS
-3. Zustand (player + auth state)
-4. Axios
-5. React Router
-6. Framer Motion
+1. A **reactive frontend UI** that visually responds to playback.
+2. A **scalable REST backend** with JWT auth and role-aware behavior.
+3. **Dynamic discovery** through local catalog + YouTube-powered search/resolve.
+4. **Personal music workflows** (likes, playlists, follows, history, recommendations).
 
-### Backend
-1. Node.js
-2. Express.js
-3. MongoDB + Mongoose
-4. JWT (`jsonwebtoken`)
-5. `bcryptjs`
-6. Multer
+---
 
-## Project Structure
+## Experience Highlights
+<div align="center">
+
+| UI & Motion | Music Intelligence | User Flows |
+|---|---|---|
+| v3 warm glass shell | YouTube-backed search | Register/Login + JWT |
+| Beat-reactive background | Smart fallback for preview tracks | Like/Unlike songs |
+| Floating player controls | Trending + recommendation endpoints | Playlist CRUD |
+| Icon-driven compact nav | History-driven discovery | Artist follow system |
+
+</div>
+
+### Playback Behavior (Important)
+1. App uses in-site player controls for play/pause/seek/volume/queue.
+2. If a source is short/preview-only or fails, player attempts YouTube resolution for better continuity.
+3. Search can return broader music results via `/api/songs/youtube-search`.
+
+---
+
+## Architecture
+```mermaid
+flowchart LR
+  A[React + Zustand UI] --> B[Axios Client]
+  B --> C[Express API]
+  C --> D[(MongoDB)]
+  C --> E[YouTube Data API]
+  D --> C
+  E --> C
+  C --> B
+  B --> A
+```
+
+### Monorepo Layout
 ```text
 RhythmicTunes/
   client/
@@ -72,102 +105,71 @@ RhythmicTunes/
   README.md
 ```
 
-## Core Features
-### Authentication
-1. Register and login with JWT.
-2. Secure password hashing with bcrypt.
-3. Protected routes and identity hydration (`/api/auth/me`).
+---
 
-### Music Experience
-1. Search from local DB and YouTube.
-2. In-app player controls (play/pause/seek/volume/queue).
-3. YouTube source playback via hidden player flow.
-4. Fallback resolution for broken preview tracks.
+## Tech Stack
+### Frontend
+1. React + Vite
+2. TailwindCSS
+3. Zustand
+4. Axios
+5. React Router
+6. Framer Motion
 
-### Discovery
-1. Trending songs.
+### Backend
+1. Node.js
+2. Express.js
+3. MongoDB + Mongoose
+4. JWT (`jsonwebtoken`)
+5. `bcryptjs`
+6. Multer
+
+---
+
+## Feature Deep Dive
+<details open>
+<summary><b>Authentication & Access</b></summary>
+
+1. JWT-based login/register flow.
+2. Password hashing with bcrypt.
+3. Protected routes and user identity hydration via `/api/auth/me`.
+4. Role-aware admin UI visibility (user/admin patterns supported in current code).
+
+</details>
+
+<details open>
+<summary><b>Music Playback</b></summary>
+
+1. Sticky/floating in-app player.
+2. Queue controls: previous/next/play/pause.
+3. Seek bar + volume controls.
+4. YouTube fallback/resolve behavior for problematic preview tracks.
+
+</details>
+
+<details open>
+<summary><b>Discovery & Recommendations</b></summary>
+
+1. Trending songs endpoint.
 2. History-based recommendations.
 3. Playlist-based recommendations.
-4. Explore page for external search and ingestion workflows.
+4. Explore and Search pages for local + external music lookup.
 
-### Social + Library
-1. Like/unlike songs.
-2. Follow artists.
-3. Create/manage playlists.
+</details>
+
+<details open>
+<summary><b>Library & Social</b></summary>
+
+1. Liked songs flow.
+2. Artist follow/unfollow flow.
+3. Playlist creation, update, delete, and song management.
 4. Listening history timeline.
 
-### Admin and Management
-1. Admin panel route guard.
-2. Admin utilities and role-based visibility.
-3. Admin account bootstrap script.
+</details>
 
-## Local Setup
-## Prerequisites
-1. Node.js (recommended LTS)
-2. MongoDB (local or cloud)
-3. npm
+---
 
-## Install
-1. Root dependencies:
-```bash
-npm install
-```
-
-2. Backend dependencies:
-```bash
-cd server
-npm install
-```
-
-3. Frontend dependencies:
-```bash
-cd ../client
-npm install
-```
-
-## Environment Variables
-Create env files from examples:
-
-1. `server/.env`
-```env
-PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/rhythmictunes
-JWT_SECRET=replace_with_a_strong_secret
-YOUTUBE_API_KEY=replace_with_your_key
-```
-
-2. `client/.env`
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-## Run
-1. Backend:
-```bash
-cd server
-npm start
-```
-
-2. Frontend:
-```bash
-cd client
-npm start
-```
-
-3. Open:
-- [http://localhost:5173](http://localhost:5173)
-
-## Admin Account (One Command)
-From `server/`:
-```bash
-npm run create-admin
-```
-
-Default admin login:
-1. Email: `admin@rhythmictunes.com`
-2. Password: `admin123`
-
-## API Quick Map
+## API Surface
 ### Auth
 1. `POST /api/auth/register`
 2. `POST /api/auth/login`
@@ -211,22 +213,112 @@ Default admin login:
 ### Health
 1. `GET /api/health`
 
-## Security Notes
-1. `.env` files are ignored and never committed.
-2. Rotate API keys periodically.
-3. Replace demo admin password in production.
-4. Use a strong JWT secret and HTTPS in deployment.
+---
 
-## Known Dev Notes
-1. If login fails, run `npm run create-admin` again to reset admin account.
-2. If UI looks stale, hard refresh browser (`Ctrl + Shift + R`).
-3. If search seems empty, verify `YOUTUBE_API_KEY` and backend logs.
+## Local Setup
+### Prerequisites
+1. Node.js (LTS recommended)
+2. MongoDB (local or cloud)
+3. npm
+
+### Install
+1. Root dependencies:
+```bash
+npm install
+```
+
+2. Backend:
+```bash
+cd server
+npm install
+```
+
+3. Frontend:
+```bash
+cd ../client
+npm install
+```
+
+### Run
+1. Start backend:
+```bash
+cd server
+npm start
+```
+
+2. Start frontend:
+```bash
+cd client
+npm start
+```
+
+3. Open app:
+- [http://localhost:5173](http://localhost:5173)
+
+---
+
+## Environment Variables
+### `server/.env`
+```env
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/rhythmictunes
+JWT_SECRET=replace_with_a_strong_secret
+YOUTUBE_API_KEY=replace_with_your_key
+```
+
+### `client/.env`
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+> `.env` files are ignored by Git and should never be committed.
+
+---
+
+## Admin Bootstrap
+From `server/`:
+```bash
+npm run create-admin
+```
+
+Default credentials (development only):
+1. Email: `admin@rhythmictunes.com`
+2. Password: `admin123`
+
+---
+
+## Troubleshooting
+1. **Login fails**:
+   Run `npm run create-admin` again from `server/`, then restart backend.
+2. **Search returns empty**:
+   Verify `YOUTUBE_API_KEY` in `server/.env` and check backend logs.
+3. **UI looks stale after updates**:
+   Hard refresh browser (`Ctrl + Shift + R`).
+4. **Port/API mismatch**:
+   Ensure `VITE_API_URL` points to active backend URL.
+
+---
+
+## Security Notes
+1. Rotate API keys periodically.
+2. Use a strong JWT secret.
+3. Change default admin password before production deployment.
+4. Enforce HTTPS and CORS restrictions in production.
+
+---
 
 ## Contributing
-1. Fork repo.
-2. Create feature branch.
-3. Commit with clear messages.
-4. Open PR.
+1. Fork repository.
+2. Create a feature branch.
+3. Keep commits scoped and descriptive.
+4. Open PR with summary and test notes.
 
-## License
-This project is licensed under the MIT License.
+---
+
+<div align="center">
+
+### Built with focus, rhythm, and clean architecture.
+
+<img src="https://capsule-render.vercel.app/api?type=waving&height=140&section=footer&color=0:1a120b,35:4a2c1a,70:c46a2f,100:ff9a3d" />
+
+</div>
